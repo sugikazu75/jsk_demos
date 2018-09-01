@@ -5,7 +5,6 @@ find_package(catkin REQUIRED COMPONENTS
   jsk_pr2_startup
   jsk_recognition_msgs
   jsk_topic_tools
-  message_filter
   nodelet
   pcl_msgs
   pr2eus
