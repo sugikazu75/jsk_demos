@@ -20,7 +20,7 @@
 
       <!-- Describe the tags -->
       <rosparam param="tag_descriptions">[
-        {id: 0, size: 0.031, frame_id: plug_frame},
+        {id: 0, size: 0.031, frame_id: plug_frame}]
       </rosparam>
 
       <remap from="tag_detections_pose" to="plug_pose" />
