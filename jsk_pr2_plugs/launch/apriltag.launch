@@ -52,4 +52,35 @@
 
   </group>
 
+  <group ns="/prosilica" >
+    <node name="apriltag_detector1"
+          pkg="apriltags_ros" type="apriltag_detector_node"
+          output="screen" >
+      <remap from="image_rect" to="image_rect" />
+      <remap from="camera_info" to="camera_info" />
+      <param name="image_transport" type="str" value="compressed" />
+      <param name="tag_family" type="str" value="36h11" />
+      <param name="projected_optics" type="bool" value="true" />
+      <remap from="tag_detections_pose" to="plug_pose" />
+      <rosparam param="tag_descriptions">[
+        {id: 0, size: 0.031, frame_id: prosilica_plug_frame}]
+      </rosparam>
+    </node>
+
+    <node name="apriltag_detector2"
+          pkg="apriltags_ros" type="apriltag_detector_node"
+          output="screen" >
+      <remap from="image_rect" to="image_rect" />
+      <remap from="camera_info" to="camera_info" />
+      <param name="image_transport" type="str" value="compressed" />
+      <param name="tag_family" type="str" value="36h11" />
+      <param name="projected_optics" type="bool" value="true" />
+      <rosparam param="tag_descriptions">[
+        {id: 1, size: 0.0396, frame_id: prosilica_outlet_frame}]
+      </rosparam>
+      <remap from="tag_detections_pose" to="outlet_pose" />
+    </node>
+  </group>
+
+
 </launch>
