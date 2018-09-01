@@ -1,0 +1,9 @@
+<launch>
+  <group ns="prosilica" >
+    <node name="rectify_image"
+          pkg="nodelet" type="nodelet"
+          args="standalone image_proc/rectify" >
+      <remap from="image_mono" to="image_raw" />
+    </node>
+  </group>
+</launch>
