@@ -50,10 +50,6 @@
           pkg="rviz" type="rviz"
           args="-d $(find jsk_maps)/launch/config/wrs_for_spot.rviz">
     </node>
-    <node name="dump_coords"
-          pkg="jsk_maps" type="dump_coords.py"
-          output="screen" >
-    </node>
   </group>
 
 </launch>
