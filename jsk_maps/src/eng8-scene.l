@@ -155,11 +155,51 @@
     scene ))
 
 
+(defun make-eng8-wrs-scene ()
+  (let* (scene map floor-names rooms spots objects)
+    (setq map (make-floor-plane
+               (ros::resolve-ros-path "package://jsk_maps/raw_maps/wrs.pgm")
+               50 -51224.998 -51224.998 :name "/eng8/wrs/floor-plane"))
+
+    ;; WRS
+    ;; should be updated
+    (make-cascoords-tree
+     map
+     `(:rpy #f(1.969 0.0 0.0)
+        :pos ,(float-vector 325.675 4513.233 0)
+        :name "/eng8/wrs/food_cabinet_B")
+     `(:rpy #f(1.944 0.0 0.0)
+        :pos ,(float-vector -270.574 4138.152 0)
+        :name "/eng8/wrs/food_cabinet_A")
+     `(:rpy #f(2.783 0.0 0.0)
+        :pos ,(float-vector -462.448 3247.686 0)
+        :name "/eng8/wrs/dining/refrigerator_front")
+     `(:rpy #f(-2.764 0.0 0.0)
+        :pos ,(float-vector -505.818 2726.077 0)
+        :name "/eng8/wrs/dining/kitchen_front")
+     `(:rpy #f(-1.293 0.0 0.0)
+        :pos ,(float-vector -33.275 -3.794 0)
+        :name "/eng8/wrs/dining/search_spot_A")
+     `(:rpy #f(-2.779 0.0 0.0)
+        :pos ,(float-vector 1060.923 -682.666 0)
+        :name "/eng8/wrs/dining/search_spot_B")
+     ;; coords
+     )
+
+    (setq scene (instance nav-scene-model :init
+                          :name "/eng8/wrs"
+                          :objects (append (list map) (send map :descendants))))
+    (send scene :map map)
+    scene))
+
+
 (defun make-eng8-scene ()
   (let* (scene maps floor-names spots objects)
-    (setq maps (list (make-eng8-b1f-scene)
-		     (make-eng8-1f-scene)
-		     (make-eng8-6f-scene)))
+    (setq maps (list
+                (make-eng8-b1f-scene)
+                (make-eng8-1f-scene)
+                (make-eng8-6f-scene)
+                (make-eng8-wrs-scene)))
 
     ;; this is not true
     (dotimes (i (length maps))
