@@ -3,6 +3,7 @@
   <arg name="launch_map_server" default="true" />
   <arg name="use_machine" default="false" />
   <arg name="use_pictogram" default="false" />
+  <arg name="use_rviz" default="false" />
 
   <machine name="localhost" address="localhost" if="$(arg use_machine)" />
 
@@ -43,5 +44,16 @@
       tf_frame: interactive_marker
     </rosparam>
   </node>
+
+  <group if="$(arg use_rviz)" >
+    <node name="rviz_for_spot"
+          pkg="rviz" type="rviz"
+          args="-d $(find jsk_maps)/launch/config/wrs_for_spot.rviz">
+    </node>
+    <node name="dump_coords"
+          pkg="jsk_maps" type="dump_coords.py"
+          output="screen" >
+    </node>
+  </group>
 
 </launch>
