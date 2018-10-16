@@ -30,4 +30,18 @@
     <param name="~use_pictogram" value="$(arg use_pictogram)" />
   </node>
 
+  <node name="marker_cube"
+        pkg="jsk_interactive_marker" type="marker_6dof">
+    <rosparam>
+      frame_id: /eng8/wrs
+      object_type: line
+      object_r: 1.0
+      object_g: 0.2
+      object_b: 0.2
+      object_a: 1.0
+      publish_tf: true
+      tf_frame: interactive_marker
+    </rosparam>
+  </node>
+
 </launch>
