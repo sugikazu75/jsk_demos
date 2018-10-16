@@ -1,0 +1,136 @@
+<launch>
+  <arg name="use_rviz" default="true" />
+  <arg name="MANAGER" default="dataset_collection_manager" />
+
+  <arg name="camera" default="hsrb/head_rgbd_sensor" />
+  <arg name="IMAGE" default="image_rect_color" />
+  <arg name="DEPTH_SPACE" default="depth_registered" />
+  <arg name="RGB" value="rgb" />
+
+  <arg name="INPUT_CLOUD" value="/$(arg camera)/depth_registered/rectified_points" />
+  <arg name="INPUT_CAMERA_INFO" value="/$(arg camera)/$(arg RGB)/camera_info" />
+  <arg name="INPUT_IMAGE" value="/$(arg camera)/$(arg RGB)/$(arg IMAGE)" />
+
+  <group ns="data_collection">
+    <node name="$(arg MANAGER)"
+          pkg="nodelet" type="nodelet"
+          args="manager"
+          output="screen"/>
+
+    <group ns="boxa" >
+      <node name="marker_6dof"
+            pkg="jsk_interactive_marker" type="marker_6dof" >
+        <rosparam>
+          frame_id: /eng8/wrs
+          object_type: none
+          publish_tf: true
+          tf_frame: boxa
+        </rosparam>
+      </node>
+
+      <node name="bounding_box_array_publisher"
+            pkg="jsk_recognition_utils" type="bounding_box_array_publisher.py">
+        <rosparam>
+          frame_id: boxa
+          boxes:
+          - position: [0, 0, 0]
+            dimension: [0.37, 0.248, 0.218]
+        </rosparam>
+      </node>
+
+      <node name="bounding_box_attention_clipper"
+            pkg="nodelet" type="nodelet"
+            args="load jsk_pcl/AttentionClipper $(arg MANAGER)">
+        <remap from="~input" to="$(arg INPUT_CAMERA_INFO)" />
+        <remap from="~input/points" to="$(arg INPUT_CLOUD)" />
+        <remap from="~input/box_array" to="bounding_box_array_publisher/output" />
+        <rosparam>
+          use_multiple_attention: true
+        </rosparam>
+      </node>
+
+      <node name="object_mask_image"
+            pkg="nodelet" type="nodelet"
+            args="load jsk_pcl_utils/PointIndicesToMaskImage $(arg MANAGER)">
+        <remap from="~input" to="bounding_box_attention_clipper/output/point_indices" />
+        <remap from="~input/image" to="$(arg INPUT_IMAGE)" />
+        <rosparam>
+          approximate_sync: true
+        </rosparam>
+      </node>
+
+      <node name="object_image"
+            pkg="nodelet" type="nodelet"
+            args="load jsk_perception/ApplyMaskImage $(arg MANAGER)">
+        <remap from="~input" to="$(arg INPUT_IMAGE)" />
+        <remap from="~input/mask" to="object_mask_image/output" />
+        <rosparam>
+          approximate_sync: true
+          clip: false
+        </rosparam>
+      </node>
+    </group>
+
+    <group ns="boxb" >
+      <node name="marker_6dof"
+            pkg="jsk_interactive_marker" type="marker_6dof" >
+        <rosparam>
+          frame_id: /eng8/wrs
+          object_type: none
+          publish_tf: true
+          tf_frame: boxb
+        </rosparam>
+      </node>
+
+      <node name="bounding_box_array_publisher"
+            pkg="jsk_recognition_utils" type="bounding_box_array_publisher.py">
+        <rosparam>
+          frame_id: boxb
+          boxes:
+          - position: [0, 0, 0]
+            dimension: [0.37, 0.248, 0.218]
+        </rosparam>
+      </node>
+
+      <node name="bounding_box_attention_clipper"
+            pkg="nodelet" type="nodelet"
+            args="load jsk_pcl/AttentionClipper $(arg MANAGER)">
+        <remap from="~input" to="$(arg INPUT_CAMERA_INFO)" />
+        <remap from="~input/points" to="$(arg INPUT_CLOUD)" />
+        <remap from="~input/box_array" to="bounding_box_array_publisher/output" />
+        <rosparam>
+          use_multiple_attention: true
+        </rosparam>
+      </node>
+
+      <node name="object_mask_image"
+            pkg="nodelet" type="nodelet"
+            args="load jsk_pcl_utils/PointIndicesToMaskImage $(arg MANAGER)">
+        <remap from="~input" to="bounding_box_attention_clipper/output/point_indices" />
+        <remap from="~input/image" to="$(arg INPUT_IMAGE)" />
+        <rosparam>
+          approximate_sync: true
+        </rosparam>
+      </node>
+
+      <node name="object_image"
+            pkg="nodelet" type="nodelet"
+            args="load jsk_perception/ApplyMaskImage $(arg MANAGER)">
+        <remap from="~input" to="$(arg INPUT_IMAGE)" />
+        <remap from="~input/mask" to="object_mask_image/output" />
+        <rosparam>
+          approximate_sync: true
+          clip: false
+        </rosparam>
+      </node>
+    </group>
+
+    <group if="$(arg use_rviz)" >
+      <node name="rviz"
+            pkg="rviz" type="rviz"
+            args="-d $(find jsk_maps)/launch/config/data_collection.rviz">
+      </node>
+    </group>
+  </group> <!-- end of data_collection namespace -->
+
+</launch>
