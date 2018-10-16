@@ -139,7 +139,7 @@ map_id: ~a"
                    :default-floor "/eng2/7f")
   (load "eng8-scene.l")
   (dump-map-launch (make-eng8-scene) "launch/include/start_map_eng8_main.xml"
-                   :default-floor "/eng8/6f")
+                   :default-floor "/eng8/wrs")
   (load "eng6-scene.l")
   (dump-map-launch (make-eng6-scene) "launch/include/start_map_eng6_main.xml")
   )
