@@ -301,14 +301,13 @@
 
 (defun make-eng2-scene ()
   (let* (scene maps floor-names rooms spots objects)
-    (setq maps (list (make-eng2-1f-scene)
-                     (make-eng2-2f-scene)
-		     (make-eng2-3f-scene)
-		     (make-eng2-7f-scene)
-		     (make-eng2-8f-scene)))
-     ;; this is not true TODO: floor height should be set
-    (dotimes (i (length maps))
-      (send (elt maps i) :translate (float-vector 0 0 (* i 10000))))
+    (setq maps
+          (list
+           (send (make-eng2-1f-scene) :translate (float-vector 0 0 10000))
+           (send (make-eng2-2f-scene) :translate (float-vector 0 0 20000))
+           (send (make-eng2-3f-scene) :translate (float-vector 0 0 30000))
+           (send (make-eng2-7f-scene) :translate (float-vector 0 0 70000))
+           (send (make-eng2-8f-scene) :translate (float-vector 0 0 80000))))
 
     (setq rooms (remove-if-not #'(lambda(x)(derivedp x scene-model)) (flatten (send-all maps :objects))))
 
