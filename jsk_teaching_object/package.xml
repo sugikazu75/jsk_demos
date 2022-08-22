@@ -14,4 +14,8 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <exec_depend>coral_usb</exec_depend>
+  <exec_depend>jsk_perception</exec_depend>
+  <exec_depend>opencv_apps</exec_depend>
+
 </package>
