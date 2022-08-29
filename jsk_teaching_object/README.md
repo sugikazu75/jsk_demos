@@ -16,4 +16,3 @@ roslaunch jsk_teaching_object edgetpu_detection.launch INPUT_IMAGE:=/openni_came
 ```
 
 ![](./doc/recognition.gif)
-
