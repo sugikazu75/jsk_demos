@@ -15,4 +15,10 @@ roslaunch jsk_teaching_object edgetpu_detection.launch INPUT_IMAGE:=/openni_came
     label_file:=<LABEL_FILE_PATH>
 ```
 
+## Run sample trained models.
+
+```
+roslaunch jsk_teaching_object sample_edgetpu_detection_with_depth_filter.launch
+```
+
 ![](./doc/recognition.gif)
