@@ -51,13 +51,13 @@
       <remap from="~input" to="image_raw" />
       <remap from="~output/vertical00/horizontal00" to="left_camera/image_raw" />
       <remap from="~output/vertical00/horizontal01" to="right_camera/image_raw" />
-      <rosparam>
+      <rosparam subst_value="true">
         vertical_parts: 1
         horizontal_parts: 2
-        vertical00/horizontal00/camera_info_url: file:///tmp/left.yaml
+        vertical00/horizontal00/camera_info_url: file://$(find stereo_image_sandbox)/calibdata/left.yaml
         vertical00/horizontal00/frame_id: "left_camera"
         vertical00/horizontal01/frame_id: "right_camera"
-        vertical00/horizontal01/camera_info_url: file:///tmp/right.yaml
+        vertical00/horizontal01/camera_info_url: file://$(find stereo_image_sandbox)/calibdata/right.yaml
       </rosparam>
     </node>
 
