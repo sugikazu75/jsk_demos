@@ -130,6 +130,10 @@
             pkg="image_view" type="disparity_view"
             args="image:=disparity" />
     </group>
+
+    <node name="$(anon rviz)"
+          pkg="rviz" type="rviz"
+          args="-d $(find stereo_image_sandbox)/config/default.rviz" />
   </group>
 
 </launch>
