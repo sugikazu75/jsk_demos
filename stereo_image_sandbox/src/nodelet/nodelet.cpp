@@ -33,7 +33,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-#include "opencv_apps/nodelet.h"
+#include "stereo_image_sandbox/nodelet.h"
 #if BOOST_VERSION < 106000  // since 1.60.0, boost uses placeholders namesapce for _1,_2...
 #ifndef BOOST_PLAEHOLDERS
 #define BOOST_PLAEHOLDERS
@@ -55,7 +55,7 @@ boost::arg<9> _9;
 #endif  // BOOST_PLAEHOLDERS
 #endif  // BOOST_VERSION < 106000
 
-namespace opencv_apps
+namespace stereo_image_sandbox
 {
 void Nodelet::onInit()
 {
@@ -222,4 +222,4 @@ void Nodelet::cameraConnectionBaseCallback()
     }
   }
 }
-}  // namespace opencv_apps
+}  // namespace stereo_image_sandbox
