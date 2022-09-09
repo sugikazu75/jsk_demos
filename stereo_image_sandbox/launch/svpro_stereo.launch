@@ -94,7 +94,7 @@
       <remap from="right/image_rect" to="right_camera/image_rect_color" />
       <remap from="right/camera_info" to="right_camera/camera_info" />
       <rosparam subst_value="true" >
-        disparity_range: 256
+        disparity_range: 64
         queue_size: $(arg queue_size)
       </rosparam>
     </node>
