@@ -2,7 +2,3 @@
     local-name: jsk-ros-pkg/jsk_demos
     uri: https://github.com/iory/jsk_demos.git
     version: stereo
-- git:
-    local-name: jsk-ros-pkg/jsk_recognition
-    uri: https://github.com/iory/jsk_recognition
-    version: insta360

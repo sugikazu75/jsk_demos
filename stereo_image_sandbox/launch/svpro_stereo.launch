@@ -46,7 +46,7 @@
 
     <node name="split_image"
           pkg="nodelet" type="nodelet"
-          args="load jsk_perception/SplitImage $(arg manager)"
+          args="load stereo_image_sandbox/SplitImage $(arg manager)"
           clear_params="true">
       <remap from="~input" to="image_raw" />
       <remap from="~output/vertical00/horizontal00" to="left_camera/image_raw" />
