@@ -1,5 +1,5 @@
 <library path="lib/libstereo_image_sandbox">
-  <class name="stereo_image_sandbox/SplitImage"
+  <class name="stereo_image_sandbox/split_image"
          type="stereo_image_sandbox::SplitImage"
          base_class_type="nodelet::Nodelet">
   </class>

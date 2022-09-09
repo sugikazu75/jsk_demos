@@ -34,8 +34,8 @@
  *********************************************************************/
 
 
-#ifndef JSK_PERCEPTION_SPLIT_IMAGE_H_
-#define JSK_PERCEPTION_SPLIT_IMAGE_H_
+#ifndef STEREO_IMAGE_SANDBOX_SPLIT_IMAGE_H_
+#define STEREO_IMAGE_SANDBOX_SPLIT_IMAGE_H_
 
 #include <jsk_topic_tools/diagnostic_nodelet.h>
 #include <camera_info_manager/camera_info_manager.h>
@@ -43,7 +43,7 @@
 #include <sensor_msgs/CameraInfo.h>
 
 
-namespace jsk_perception
+namespace stereo_image_sandbox
 {
   class SplitImage: public jsk_topic_tools::DiagnosticNodelet
   {

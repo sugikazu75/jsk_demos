@@ -15,6 +15,7 @@
   <build_depend>camera_info_manager</build_depend>
   <build_depend>cv_bridge</build_depend>
   <build_depend>jsk_topic_tools</build_depend>
+  <build_depend>nodelet</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <!-- ALPHABETICAL ORDER -->
 
@@ -24,6 +25,7 @@
   <exec_depend>image_proc</exec_depend>
   <exec_depend>jsk_topic_tools</exec_depend>
   <exec_depend>libuvc_camera</exec_depend>
+  <exec_depend>nodelet</exec_depend>
   <exec_depend>rgbd_launch</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>stereo_image_proc</exec_depend>

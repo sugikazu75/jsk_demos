@@ -37,7 +37,7 @@
 #include <cv_bridge/cv_bridge.h>
 
 
-namespace jsk_perception
+namespace stereo_image_sandbox
 {
   void SplitImage::onInit()
   {
@@ -112,4 +112,4 @@ namespace jsk_perception
 }
 
 #include <pluginlib/class_list_macros.h>
-PLUGINLIB_EXPORT_CLASS(jsk_perception::SplitImage, nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(stereo_image_sandbox::SplitImage, nodelet::Nodelet);

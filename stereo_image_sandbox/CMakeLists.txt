@@ -15,23 +15,46 @@ message("OPENCV ${OpenCV_VERSION} FOUND")
 
 catkin_package(
   CATKIN_DEPENDS
-  jsk_topic_tools
   camera_info_manager
+  jsk_topic_tools
+  nodelet
   sensor_msgs
   DEPENDS
   INCLUDE_DIRS include ${EIGEN3_INCLUDE_DIRS}
+  LIBRARIES ${PROJECT_NAME}
 )
 
 # Build nodelet executables
 include_directories(include ${catkin_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
-macro(jsk_add_nodelet _nodelet_cpp _nodelet_class _single_nodelet_exec_name)
-  if(NOT EXISTS "${PROJECT_SOURCE_DIR}/test/${_single_nodelet_exec_name}.test")
-    list(APPEND ${PROJECT_NAME}_nodes_without_test ${_nodelet_cpp})
-  endif()
-  jsk_nodelet(${_nodelet_cpp} ${_nodelet_class} ${_single_nodelet_exec_name}
-    ${PROJECT_NAME}_nodelet_sources ${PROJECT_NAME}_nodelet_executables)
+## Macro to add nodelets
+macro(stereo_image_sandbox_add_nodelet node_name nodelet_cppfile)
+  set(NODE_NAME ${node_name})
+  set(NODELET_NAME stereo_image_sandbox/${node_name})
+  configure_file(src/node/standalone_nodelet_exec.cpp.in ${node_name}.cpp @ONLY)
+  add_executable(${node_name}_exe ${node_name}.cpp)
+  SET_TARGET_PROPERTIES(${node_name}_exe PROPERTIES OUTPUT_NAME ${node_name})
+  target_link_libraries(${node_name}_exe ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+  list(APPEND _stereo_image_sandbox_nodelet_cppfiles ${nodelet_cppfile})
+  list(APPEND _stereo_image_sandbox_nodelet_targets ${node_name}_exe)
 endmacro()
 
+
 # add_executable(dummy src/split_image.cpp)
-jsk_add_nodelet(src/split_image.cpp "stereo_image_sandbox/SplitImage" "split_image")
+stereo_image_sandbox_add_nodelet("split_image" src/split_image.cpp)
+
+add_library(${PROJECT_NAME} SHARED
+  src/nodelet/nodelet.cpp
+  ${_stereo_image_sandbox_nodelet_cppfiles}
+)
+
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+install(TARGETS ${PROJECT_NAME}
+  DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+)
+
+install(DIRECTORY plugins
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS
+)
