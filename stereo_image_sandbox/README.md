@@ -12,3 +12,10 @@ rosdep update
 rosdep install --from-paths -i -y -r .
 catkin b stereo_image_sandbox -j4
 ```
+
+## Install udev
+
+```
+sudo cp ./udev/99-uvc.rules /etc/udev/rules.d/99-uvc.rules
+```
+
