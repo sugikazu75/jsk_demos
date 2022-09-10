@@ -13,6 +13,15 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(OpenCV REQUIRED)
 message("OPENCV ${OpenCV_VERSION} FOUND")
 
+# download and install sample data
+catkin_download(download_people_pose_estimation https://storage.googleapis.com/download.tensorflow.org/models/tflite/posenet_mobilenet_v1_100_257x257_multi_kpt_stripped.tflite
+  DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/trained_data
+  FILENAME posenet_mobilenet_v1_100_257x257_multi_kpt_stripped.tflite
+  MD5 5719c1565e011c22ea151c4d4705bc1c
+)
+
+add_custom_target(download ALL DEPENDS download_extra_data)
+
 catkin_package(
   CATKIN_DEPENDS
   camera_info_manager
