@@ -8,6 +8,10 @@ from jsk_topic_tools import ConnectionBasedTransport
 import numpy as np
 import rospy
 from sensor_msgs.msg import Image
+from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Point
+from jsk_recognition_msgs.msg import PeoplePoseArray
+from jsk_recognition_msgs.msg import PeoplePose
 
 
 # OpenCV import for python3
@@ -44,7 +48,24 @@ else:
     else:
         from cv_bridge import CvBridge
 
-
+index2name = {0: 'nose',
+              1: 'leftEye',
+              2: 'rightEye',
+              3: 'leftEar',
+              4: 'rightEar',
+              5: 'leftShoulder',
+              6: 'rightShoulder',
+              7: 'leftElbow',
+              8: 'rightElbow',
+              9: 'leftWrist',
+              10: 'rightWrist',
+              11: 'leftHip',
+              12: 'rightHip',
+              13: 'leftKnee',
+              14: 'rightKnee',
+              15: 'leftAnkle',
+              16: 'rightAnkle',
+              }
 
 def mod(a, b):
     """find a % b"""
@@ -139,6 +160,8 @@ class PoseEstimation(ConnectionBasedTransport):
         self.bridge = CvBridge()
         self.pub_img = self.advertise(
             '~output/viz', Image, queue_size=1)
+        self.pose_pub = self.advertise('~output/pose',
+                                       PeoplePoseArray, queue_size=1)
 
     def subscribe(self):
         self.sub = rospy.Subscriber(
@@ -192,26 +215,45 @@ class PoseEstimation(ConnectionBasedTransport):
         keypoint_positions[:, 1] /= scale_width
         keypoint_positions[:, 0] /= scale_height
 
-        # Loop over all detections and draw detection box if confidence is above minimum threshold
+        people_pose_msg = PeoplePoseArray()
+        people_pose_msg.header = img_msg.header
+        pose_msg = PeoplePose()
         for i in range(len(keypoint_positions)):
             #don't draw low confidence points
             if i in drop_pts:
                 continue
             # Center coordinates
-            x = int(keypoint_positions[i][1])
-            y = int(keypoint_positions[i][0])
-            center_coordinates = (x, y)
-            radius = 2
-            color = (0, 255, 0)
-            thickness = 2
-            cv2.circle(frame, center_coordinates, radius, color, thickness)
+            x = keypoint_positions[i][1]
+            y = keypoint_positions[i][0]
+            pose_msg.limb_names.append(index2name[i])
+            pose_msg.poses.append(
+                Pose(position=Point(x=x,
+                                    y=y,
+                                    z=0)))
+        people_pose_msg.poses.append(pose_msg)
+        self.pose_pub.publish(people_pose_msg)
 
-        frame_resized = draw_lines(keypoint_positions, frame, drop_pts)
+        if self.pub_img.get_num_connections() > 0:
+            # Loop over all detections and draw detection box if confidence is above minimum threshold
+            for i in range(len(keypoint_positions)):
+                #don't draw low confidence points
+                if i in drop_pts:
+                    continue
+                # Center coordinates
+                x = int(keypoint_positions[i][1])
+                y = int(keypoint_positions[i][0])
+                center_coordinates = (x, y)
+                radius = 2
+                color = (0, 255, 0)
+                thickness = 2
+                cv2.circle(frame, center_coordinates, radius, color, thickness)
 
-        out_img_msg = bridge.cv2_to_imgmsg(
-            frame, encoding='bgr8')
-        out_img_msg.header = img_msg.header
-        self.pub_img.publish(out_img_msg)
+            frame_resized = draw_lines(keypoint_positions, frame, drop_pts)
+
+            out_img_msg = bridge.cv2_to_imgmsg(
+                frame, encoding='bgr8')
+            out_img_msg.header = img_msg.header
+            self.pub_img.publish(out_img_msg)
 
 
 if __name__ == '__main__':
