@@ -1,10 +1,13 @@
 <launch>
+  <arg name="camera_name" value="stereo" />
   <arg name="queue_size" default="30" />
+  <arg name="manager" default="/$(arg camera_name)/$(arg camera_name)_nodelet_manager" />
 
   <group ns="stereo" >
     <group ns="left_camera" >
       <node name="apriltag_ros_continuous_node"
-            pkg="apriltag_ros" type="apriltag_ros_continuous_node"
+            pkg="nodelet" type="nodelet"
+            args="load apriltag_ros/ContinuousDetector $(arg manager)"
             clear_params="true"
             output="screen" >
         <remap from="image_rect" to="image_rect_color" />
@@ -19,7 +22,8 @@
 
     <group ns="right_camera" >
       <node name="apriltag_ros_continuous_node"
-            pkg="apriltag_ros" type="apriltag_ros_continuous_node"
+            pkg="nodelet" type="nodelet"
+            args="load apriltag_ros/ContinuousDetector $(arg manager)"
             clear_params="true"
             output="screen" >
         <remap from="image_rect" to="image_rect_color" />
