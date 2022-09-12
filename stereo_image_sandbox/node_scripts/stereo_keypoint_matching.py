@@ -154,7 +154,7 @@ class StereoKeypointMatching(ConnectionBasedTransport):
                     dist += np.sqrt((right_xy[0] - x) ** 2 + (right_xy[1] - y) ** 2)
                 dists[i, j] = dist
 
-        left_indices, right_indices = linear_assignment(-dists)
+        left_indices, right_indices = linear_assignment(dists)
 
         out_msg = PeoplePoseArray(header=left_camera_info.header)
         hand_list = []
