@@ -12,6 +12,9 @@ from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Point
 from jsk_recognition_msgs.msg import PeoplePoseArray
 from jsk_recognition_msgs.msg import PeoplePose
+from jsk_recognition_msgs.msg import HumanSkeleton
+from jsk_recognition_msgs.msg import HumanSkeletonArray
+from jsk_recognition_msgs.msg import Segment
 
 
 # OpenCV import for python3
@@ -81,6 +84,37 @@ class HandPoseEstimation(ConnectionBasedTransport):
             self.mp_hands.HandLandmark.PINKY_TIP: "little_tip",
         }
 
+        FINGERNAMES = [
+            "wrist",
+            "thumb_mcp",
+            "thumb_pip",
+            "thumb_dip",
+            "thumb_tip",
+            "index_mcp",
+            "index_pip",
+            "index_dip",
+            "index_tip",
+            "middle_mcp",
+            "middle_pip",
+            "middle_dip",
+            "middle_tip",
+            "ring_mcp",
+            "ring_pip",
+            "ring_dip",
+            "ring_tip",
+            "little_mcp",
+            "little_pip",
+            "little_dip",
+            "little_tip",
+        ]
+        connections = []
+        for i in range(5):
+            connections.append((FINGERNAMES[0], FINGERNAMES[i * 4 + 1]))
+            connections.append((FINGERNAMES[i * 4 + 1], FINGERNAMES[i * 4 + 2]))
+            connections.append((FINGERNAMES[i * 4 + 2], FINGERNAMES[i * 4 + 3]))
+            connections.append((FINGERNAMES[i * 4 + 3], FINGERNAMES[i * 4 + 4]))
+        self.connections = connections
+
         self.hand_pose_estimator = self.mp_hands.Hands(
             min_detection_confidence=0.5,
             min_tracking_confidence=0.5)
@@ -90,6 +124,8 @@ class HandPoseEstimation(ConnectionBasedTransport):
             '~output/viz', Image, queue_size=1)
         self.pose_pub = self.advertise('~output/pose',
                                        PeoplePoseArray, queue_size=1)
+        self.skeleton_pub = self.advertise(
+            '~output/skeleton', HumanSkeletonArray, queue_size=1)
 
     def subscribe(self):
         self.sub = rospy.Subscriber(
@@ -114,14 +150,16 @@ class HandPoseEstimation(ConnectionBasedTransport):
         image.flags.writeable = False
         results = self.hand_pose_estimator.process(image)
 
-        people_pose_msg = PeoplePoseArray()
-        people_pose_msg.header = img_msg.header
+        people_pose_msg = PeoplePoseArray(header=img_msg.header)
+        skeleton_msgs = HumanSkeletonArray(header=img_msg.header)
         _PRESENCE_THRESHOLD = 0.5
         _VISIBILITY_THRESHOLD = 0.5
         if results.multi_hand_landmarks:
+            hand_list = []
             for hand_landmarks in results.multi_hand_landmarks:
                 pose_msg = PeoplePose()
                 image_rows, image_cols, _ = image.shape
+                hand = {}
                 for idx, landmark in enumerate(hand_landmarks.landmark):
                     if ((landmark.HasField('visibility') and
                          landmark.visibility < _VISIBILITY_THRESHOLD) or
@@ -132,14 +170,32 @@ class HandPoseEstimation(ConnectionBasedTransport):
                         landmark.x, landmark.y,
                         image_cols, image_rows)
                     if landmark_px:
-                        pose_msg.scores.append(landmark.presence)
+                        pose_msg.scores.append(landmark.visibility)
                         pose_msg.limb_names.append(self.INDEX2FINGERNAME[idx])
                         pose_msg.poses.append(
                             Pose(position=Point(x=landmark_px[0],
                                                 y=landmark_px[1],
                                                 z=0)))
+                        hand[self.INDEX2FINGERNAME[idx]] = np.array([landmark_px[0],
+                                                                     landmark_px[1],
+                                                                     0.0])
                 people_pose_msg.poses.append(pose_msg)
+                hand_list.append(hand)
+
+            for hand in hand_list:
+                skeleton_msg = HumanSkeleton(header=img_msg.header)
+                for a, b in self.connections:
+                    if not (a in hand and b in hand):
+                        continue
+                    bone_name = '{}->{}'.format(a, b)
+                    bone = Segment(
+                        start_point=Point(*hand[a]),
+                        end_point=Point(*hand[b]))
+                    skeleton_msg.bones.append(bone)
+                    skeleton_msg.bone_names.append(bone_name)
+                skeleton_msgs.skeletons.append(skeleton_msg)
         self.pose_pub.publish(people_pose_msg)
+        self.skeleton_pub.publish(skeleton_msgs)
 
         if self.pub_img.get_num_connections() > 0:
             # Draw the hand annotations on the image.

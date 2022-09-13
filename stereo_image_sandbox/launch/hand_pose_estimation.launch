@@ -32,9 +32,9 @@
           clear_params="true"
           output="screen" >
         <remap from="~left/camera_info" to="left_camera/camera_info" />
-        <remap from="~left/pose" to="left_camera/hand_pose_estimation/output/pose" />
+        <remap from="~left/skeleton" to="left_camera/hand_pose_estimation/output/skeleton" />
         <remap from="~right/camera_info" to="right_camera/camera_info" />
-        <remap from="~right/pose" to="right_camera/hand_pose_estimation/output/pose" />
+        <remap from="~right/skeleton" to="right_camera/hand_pose_estimation/output/skeleton" />
         <rosparam subst_value="true" >
           queue_size: $(arg queue_size)
         </rosparam>

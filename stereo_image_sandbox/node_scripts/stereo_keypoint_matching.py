@@ -39,37 +39,6 @@ class StereoKeypointMatching(ConnectionBasedTransport):
     def __init__(self):
         super(StereoKeypointMatching, self).__init__()
 
-        FINGERNAMES = [
-            "wrist",
-            "thumb_mcp",
-            "thumb_pip",
-            "thumb_dip",
-            "thumb_tip",
-            "index_mcp",
-            "index_pip",
-            "index_dip",
-            "index_tip",
-            "middle_mcp",
-            "middle_pip",
-            "middle_dip",
-            "middle_tip",
-            "ring_mcp",
-            "ring_pip",
-            "ring_dip",
-            "ring_tip",
-            "little_mcp",
-            "little_pip",
-            "little_dip",
-            "little_tip",
-        ]
-        connections = []
-        for i in range(5):
-            connections.append((FINGERNAMES[0], FINGERNAMES[i * 4 + 1]))
-            connections.append((FINGERNAMES[i * 4 + 1], FINGERNAMES[i * 4 + 2]))
-            connections.append((FINGERNAMES[i * 4 + 2], FINGERNAMES[i * 4 + 3]))
-            connections.append((FINGERNAMES[i * 4 + 3], FINGERNAMES[i * 4 + 4]))
-        self.connections = connections
-
         self.pose_pub = self.advertise(
             '~output/pose', PeoplePoseArray, queue_size=1)
         self.skeleton_pub = self.advertise(
@@ -83,17 +52,17 @@ class StereoKeypointMatching(ConnectionBasedTransport):
         sub_right_camera_info = message_filters.Subscriber(
             '~right/camera_info',
             CameraInfo, queue_size=1)
-        sub_right_poses = message_filters.Subscriber(
-            '~right/pose',
-            PeoplePoseArray, queue_size=1)
-        sub_left_poses = message_filters.Subscriber(
-            '~left/pose',
-            PeoplePoseArray, queue_size=1)
+        sub_right_skeleton = message_filters.Subscriber(
+            '~right/skeleton',
+            HumanSkeletonArray, queue_size=1)
+        sub_left_skeleton = message_filters.Subscriber(
+            '~left/skeleton',
+            HumanSkeletonArray, queue_size=1)
         self.subs = [
             sub_left_camera_info,
             sub_right_camera_info,
-            sub_left_poses,
-            sub_right_poses,
+            sub_left_skeleton,
+            sub_right_skeleton,
         ]
         if rospy.get_param('~approximate_sync', True):
             slop = rospy.get_param('~slop', 0.1)
@@ -108,6 +77,28 @@ class StereoKeypointMatching(ConnectionBasedTransport):
         for sub in self.subs:
             sub.unregister()
 
+    def poses_from_skeletons(self, skeleton_msg):
+        limbs = []
+        poses = []
+        connections = []
+        for skeleton in skeleton_msg.skeletons:
+            limb_to_pose = {}
+            for bone_name, bone in zip(skeleton.bone_names,
+                                       skeleton.bones):
+                a, b = bone_name.split('->')
+                connections.append((a, b))
+                limbs.extend([a, b])
+                limb_to_pose[a] = np.array(
+                    [bone.start_point.x,
+                     bone.start_point.y,
+                     bone.start_point.z])
+                limb_to_pose[b] = np.array(
+                    [bone.end_point.x,
+                     bone.end_point.y,
+                     bone.end_point.z])
+            poses.append(limb_to_pose)
+        return poses, limbs, connections
+
     def callback(self, left_camera_info, right_camera_info,
                  left_hand, right_hand):
         left_camera = PinholeCameraModel.from_camera_info(
@@ -115,29 +106,12 @@ class StereoKeypointMatching(ConnectionBasedTransport):
         right_camera = PinholeCameraModel.from_camera_info(
             right_camera_info)
 
-        limbs = []
-        for pose in left_hand.poses:
-            limbs.extend(pose.limb_names)
-        for pose in right_hand.poses:
-            limbs.extend(pose.limb_names)
-        limbs = list(set(limbs))
+        left_poses, left_limbs, c1 = self.poses_from_skeletons(left_hand)
+        right_poses, right_limbs, c2 = self.poses_from_skeletons(right_hand)
+        connections = list(set(c1 + c2))
+        limbs = list(set(left_limbs + right_limbs))
 
-        left_poses = []
-        for pose in left_hand.poses:
-            limb_to_pose = {}
-            for name, pose in zip(pose.limb_names, pose.poses):
-                limb_to_pose[name] = np.array(
-                    [pose.position.x, pose.position.y])
-            left_poses.append(limb_to_pose)
-        right_poses = []
-        for pose in right_hand.poses:
-            limb_to_pose = {}
-            for name, pose in zip(pose.limb_names, pose.poses):
-                limb_to_pose[name] = np.array(
-                    [pose.position.x, pose.position.y])
-            right_poses.append(limb_to_pose)
-
-        dists = np.zeros((len(left_hand.poses), len(right_hand.poses)),
+        dists = np.zeros((len(left_hand.skeletons), len(right_hand.skeletons)),
                          dtype=np.float64)
         for i, left_pose in enumerate(left_poses):
             for j, right_pose in enumerate(right_poses):
@@ -187,7 +161,7 @@ class StereoKeypointMatching(ConnectionBasedTransport):
             skeleton_msgs = HumanSkeletonArray(header=left_camera_info.header)
             for hand in hand_list:
                 skeleton_msg = HumanSkeleton(header=left_camera_info.header)
-                for a, b in self.connections:
+                for a, b in connections:
                     if not (a in hand and b in hand):
                         continue
                     bone_name = '{}->{}'.format(a, b)
