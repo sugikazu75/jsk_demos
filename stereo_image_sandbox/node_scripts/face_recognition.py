@@ -15,9 +15,15 @@ from jsk_recognition_msgs.msg import PeoplePose
 from jsk_recognition_msgs.msg import HumanSkeleton
 from jsk_recognition_msgs.msg import HumanSkeletonArray
 from jsk_recognition_msgs.msg import Segment
-from opencv_apps.msg import FaceArrayStamped
-from opencv_apps.msg import Face
-from opencv_apps.msg import Rect
+
+opencv_apps_enabled = True
+try:
+    from opencv_apps.msg import FaceArrayStamped
+    from opencv_apps.msg import Face
+    from opencv_apps.msg import Rect
+except ImportError:
+    opencv_apps_enabled = False
+opencv_apps_enabled = False
 
 
 # OpenCV import for python3
@@ -81,13 +87,14 @@ class FaceRecognition(ConnectionBasedTransport):
             model_selection=1, min_detection_confidence=0.5)
 
         self.bridge = CvBridge()
-        self.faces_pub = self.advertise(
-            '~faces',
-            FaceArrayStamped, queue_size=1)
         self.pub_img = self.advertise(
             '~output/viz', Image, queue_size=1)
         self.skeleton_pub = self.advertise(
             '~output/skeleton', HumanSkeletonArray, queue_size=1)
+        if opencv_apps_enabled:
+            self.faces_pub = self.advertise(
+                '~faces',
+                FaceArrayStamped, queue_size=1)
 
     def subscribe(self):
         self.sub = rospy.Subscriber(
@@ -113,11 +120,11 @@ class FaceRecognition(ConnectionBasedTransport):
         results = self.face_estimator.process(image)
         image_rows, image_cols, _ = image.shape
 
-        face_msgs = FaceArrayStamped(header=img_msg.header)
+        if opencv_apps_enabled:
+            face_msgs = FaceArrayStamped(header=img_msg.header)
         skeleton_msgs = HumanSkeletonArray(header=img_msg.header)
         if results.detections:
             for detection in results.detections:
-                face_msg = Face()
                 location = detection.location_data
                 relative_bounding_box = location.relative_bounding_box
                 xy = self.mp_drawing._normalized_to_pixel_coordinates(
@@ -133,9 +140,11 @@ class FaceRecognition(ConnectionBasedTransport):
                 if xy is None:
                     continue
                 x2, y2 = xy
-                face_msg.face = Rect(x=x1, y=y1,
-                                     width=x2 - x1, height=y2 - y1)
-                face_msgs.faces.append(face_msg)
+                if opencv_apps_enabled:
+                    face_msg = Face()
+                    face_msg.face = Rect(x=x1, y=y1,
+                                         width=x2 - x1, height=y2 - y1)
+                    face_msgs.faces.append(face_msg)
 
                 skeleton_msg = HumanSkeleton(header=img_msg.header)
                 index2pixel = {}
@@ -159,7 +168,8 @@ class FaceRecognition(ConnectionBasedTransport):
                     skeleton_msg.bone_names.append(bone_name)
 
                 skeleton_msgs.skeletons.append(skeleton_msg)
-        self.faces_pub.publish(face_msgs)
+        if opencv_apps_enabled:
+            self.faces_pub.publish(face_msgs)
         self.skeleton_pub.publish(skeleton_msgs)
 
         if self.pub_img.get_num_connections() > 0:
