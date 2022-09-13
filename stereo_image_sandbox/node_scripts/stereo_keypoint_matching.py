@@ -144,10 +144,17 @@ class StereoKeypointMatching(ConnectionBasedTransport):
                 right_xy = right_pose[name]
                 x, y, z = DLT(left_camera.P, right_camera.P, left_xy, right_xy)
                 u, v = right_camera.project3d_to_pixel((x, y, z))
+                lu, lv = left_camera.project3d_to_pixel((x, y, z))
                 if not (0 <= u < right_camera.width and 0 <= v < right_camera.height):
                     continue
-                if not (0 <= u < left_camera.width and 0 <= v < left_camera.height):
+                if not (0 <= lu < left_camera.width and 0 <= lv < left_camera.height):
                     continue
+                # diff = np.sqrt((right_xy[0] - u) ** 2 + (right_xy[1] - v) ** 2)
+                # if diff >= 5:
+                #     continue
+                # diff = np.sqrt((left_xy[0] - lu) ** 2 + (left_xy[1] - lv) ** 2)
+                # if diff >= 5:
+                #     continue
                 pose_msg.limb_names.append(name)
                 pose_msg.poses.append(
                     Pose(position=Point(x=x, y=y, z=z),
