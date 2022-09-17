@@ -18,7 +18,10 @@ from scipy import linalg
 
 
 try:
-    from sklearn.utils.linear_assignment_ import linear_assignment
+    from sklearn.utils.linear_assignment_ import linear_assignment as _linear_assignment
+    def linear_assignment(dists):
+        xy = _linear_assignment(dists)
+        return xy[:, 0], xy[:, 1]
 except:
     from scipy.optimize import linear_sum_assignment as linear_assignment
 
