@@ -84,7 +84,7 @@ class FaceRecognition(ConnectionBasedTransport):
                       for i in self.mp_face_detection.FaceKeyPoint]
 
         self.face_estimator = self.mp_face_detection.FaceDetection(
-            model_selection=1, min_detection_confidence=0.5)
+            min_detection_confidence=0.5)
 
         self.bridge = CvBridge()
         self.pub_img = self.advertise(
