@@ -56,7 +56,7 @@
         horizontal_parts: 2
         vertical00/horizontal00/camera_info_url: file://$(find stereo_image_sandbox)/calibdata/left.yaml
         vertical00/horizontal00/frame_id: "left_camera"
-        vertical00/horizontal01/frame_id: "left_camera"
+        vertical00/horizontal01/frame_id: "right_camera"
         vertical00/horizontal01/camera_info_url: file://$(find stereo_image_sandbox)/calibdata/right.yaml
       </rosparam>
     </node>
