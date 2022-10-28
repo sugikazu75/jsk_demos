@@ -5,9 +5,9 @@ import tf
 from geometry_msgs.msg import PoseStamped
 from apriltag_ros.msg import AprilTagDetectionArray
 
-class CameraTransformer:
+class mocapTransformer:
     def __init__(self):
-        self.mocap_pose_sub = rospy.Subscriber("/mocap/pose", PoseStamped, self.mocapCallback)
+        self.mocap_pose_sub = rospy.Subscriber("birotor/mocap/pose", PoseStamped, self.mocapCallback)
 
         self.br = tf.TransformBroadcaster()
 
@@ -17,5 +17,5 @@ class CameraTransformer:
 
 if __name__ == "__main__":
     rospy.init_node("transformer_node")
-    node = CameraTransformer()
+    node = mocapTransformer()
     rospy.spin()
