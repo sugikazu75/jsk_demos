@@ -1,0 +1,12 @@
+<launch>
+
+  <include file="$(find ros_speech_recognition)/launch/speech_recognition.launch" >
+    <arg name="launch_sound_play" value="false" />
+    <arg name="voice_topic" value="speech_to_text" />
+    <arg name="n_channel" value="2" />
+    <arg name="device" value="plughw:1,0" />
+    <arg name="language" value="ja-JP" />
+    <arg name="continuous" value="true" />
+  </include>
+
+</launch>
