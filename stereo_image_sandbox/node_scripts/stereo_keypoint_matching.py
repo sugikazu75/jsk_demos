@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from jsk_topic_tools import ConnectionBasedTransport
 import numpy as np
