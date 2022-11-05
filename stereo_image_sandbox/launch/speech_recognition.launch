@@ -104,4 +104,8 @@
     <arg name="continuous" value="true" />
   </include>
 
+  <node name="pi_hat_mic_doa"
+        pkg="stereo_image_sandbox" type="pi_hat_mic_doa.py" >
+  </node>
+
 </launch>
