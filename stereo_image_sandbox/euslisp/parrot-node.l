@@ -25,6 +25,6 @@
 (ros::rate 10)
 (while (null (send ps :last-message))
     (ros::spin-once)
-  )
-
-(speak-jp (format nil "~Aと言いましたか？" (send ps :last-message)))
+    (when (send ps :last-message)
+      (speak-jp (format nil "~Aと言いましたか？" (send ps :last-message)))
+      (send ps :clear)))
