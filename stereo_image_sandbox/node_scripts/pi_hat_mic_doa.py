@@ -35,11 +35,14 @@ class AudioStream(object):
             self.type_code[array.array(code).itemsize] = code
 
         self.dtype = self.type_code[self.depth / 8]
-        self.audio_buffer = np.zeros(shape=(0, 2), dtype=self.dtype)
+        self.clear()
 
         self.topic_name = topic_name
         self.sub_audio = rospy.Subscriber(
             self.topic_name, AudioData, self.audio_cb)
+
+    def clear(self):
+        self.audio_buffer = np.zeros(shape=(0, 2), dtype=self.dtype)
 
     def close(self):
         try:
@@ -219,6 +222,7 @@ class DOANode(object):
                 rospy.loginfo('waiting input audio topic')
                 continue
             theta, peakL, peakR = self.doa.get_direction(self.stream.audio_buffer)
+            self.stream.clear()
             rospy.loginfo('Direction of Arrival: {} degree, peakL: {}, peakR: {}'.format(
                 theta, peakL, peakR))
             msg.header.stamp = rospy.Time.now()

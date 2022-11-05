@@ -106,6 +106,7 @@
 
   <node name="pi_hat_mic_doa"
         pkg="stereo_image_sandbox" type="pi_hat_mic_doa.py" >
+    <remap from="/audio" to="$(arg audio_topic)" />
   </node>
 
 </launch>
