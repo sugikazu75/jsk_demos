@@ -99,7 +99,7 @@
     <arg name="launch_sound_play" value="false" />
     <arg name="launch_audio_play" value="false" />
     <arg name="voice_topic" value="speech_to_text" />
-    <arg name="device" value="$(arg device(" />
+    <arg name="device" value="$(arg device)" />
     <arg name="language" value="ja-JP" />
     <arg name="continuous" value="true" />
   </include>
