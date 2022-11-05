@@ -90,6 +90,8 @@ if __name__ == '__main__':
         speech_text = f.readline()
 
     lang = args.evaluate.lstrip('(').rstrip(')')
+    if lang not in ['ja', 'en']:
+        lang = 'en'
     cache_enabled = True
     if cache_enabled:
         cache_dir = get_cache_dir()
