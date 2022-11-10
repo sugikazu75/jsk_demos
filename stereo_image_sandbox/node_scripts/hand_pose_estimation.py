@@ -7,6 +7,7 @@ import mediapipe as mp
 from jsk_topic_tools import ConnectionBasedTransport
 import numpy as np
 import rospy
+from sensor_msgs.msg import CompressedImage
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Pose
 from geometry_msgs.msg import Point
@@ -124,6 +125,9 @@ class HandPoseEstimation(ConnectionBasedTransport):
             '~output/viz', Image, queue_size=1)
         self.pose_pub = self.advertise('~output/pose',
                                        PeoplePoseArray, queue_size=1)
+        self.pub_img_compressed = self.advertise(
+            '~output/viz/compressed',
+            CompressedImage, queue_size=1)
         self.skeleton_pub = self.advertise(
             '~output/skeleton', HumanSkeletonArray, queue_size=1)
 
@@ -209,6 +213,17 @@ class HandPoseEstimation(ConnectionBasedTransport):
                 image, encoding='bgr8')
             out_img_msg.header = img_msg.header
             self.pub_img.publish(out_img_msg)
+
+        if self.pub_img_compressed.get_num_connections() > 0:
+            # publish compressed http://wiki.ros.org/rospy_tutorials/Tutorials/WritingImagePublisherSubscriber  # NOQA
+            vis_compressed_msg = CompressedImage()
+            vis_compressed_msg.header = img_msg.header
+            # image format https://github.com/ros-perception/image_transport_plugins/blob/f0afd122ed9a66ff3362dc7937e6d465e3c3ccf7/compressed_image_transport/src/compressed_publisher.cpp#L116  # NOQA
+            vis_compressed_msg.format = 'bgr8' + '; jpeg compressed bgr8'
+            vis_img_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            vis_compressed_msg.data = np.array(
+                cv2.imencode('.jpg', vis_img_bgr)[1]).tostring()
+            self.pub_img_compressed.publish(vis_compressed_msg)
 
 
 if __name__ == '__main__':
