@@ -45,11 +45,22 @@
       <param name="auto_white_balance" value="true" />
     </node>
 
+    <node name="throttle_image"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_topic_tools/LightweightThrottle $(arg manager)"
+          clear_params="true" >
+      <remap from="~input" to="image_raw" />
+      <remap from="~output" to="throttled/image_raw" />
+      <rosparam>
+        update_rate: 4
+      </rosparam>
+    </node>
+
     <node name="split_image"
           pkg="nodelet" type="nodelet"
           args="load stereo_image_sandbox/split_image $(arg manager)"
           clear_params="true">
-      <remap from="~input" to="image_raw" />
+      <remap from="~input" to="throttled/image_raw" />
       <remap from="~output/vertical00/horizontal00" to="left_camera/image_raw" />
       <remap from="~output/vertical00/horizontal01" to="right_camera/image_raw" />
       <rosparam subst_value="true">
