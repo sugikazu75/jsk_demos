@@ -22,6 +22,7 @@
   <!-- ALPHABETICAL ORDER -->
   <exec_depend>apriltag_ros</exec_depend>
   <exec_depend>camera_info_manager</exec_depend>
+  <exec_depend>cv-bridge-python3</exec_depend>
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>image_proc</exec_depend>
   <exec_depend>jsk_hark_msgs</exec_depend>
@@ -31,9 +32,9 @@
   <exec_depend>nodelet</exec_depend>
   <exec_depend>rgbd_launch</exec_depend>
   <exec_depend>ros_speech_recognition</exec_depend>
+  <exec_depend>rtabmap_ros</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>stereo_image_proc</exec_depend>
-  <exec_depend>rtabmap_ros</exec_depend>
   <!-- ALPHABETICAL ORDER -->
 
   <!-- ALPHABETICAL ORDER -->
