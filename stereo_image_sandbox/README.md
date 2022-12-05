@@ -19,3 +19,8 @@ catkin b stereo_image_sandbox -j4
 sudo cp ./udev/99-uvc.rules /etc/udev/rules.d/99-uvc.rules
 ```
 
+## Install for text-to-speech
+
+```
+pip3 install pydub gtts
+```

@@ -16,6 +16,7 @@
   <arg name="queue_size" default="5" />
 
   <arg name="respawn" default="true" />
+  <arg name="stereo_proc" default="true" />
 
   <group ns="$(arg camera_name)">
 	  <!-- Start nodelet manager -->
@@ -44,11 +45,22 @@
       <param name="auto_white_balance" value="true" />
     </node>
 
+    <node name="throttle_image"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_topic_tools/LightweightThrottle $(arg manager)"
+          clear_params="true" >
+      <remap from="~input" to="image_raw" />
+      <remap from="~output" to="throttled/image_raw" />
+      <rosparam>
+        update_rate: 4
+      </rosparam>
+    </node>
+
     <node name="split_image"
           pkg="nodelet" type="nodelet"
           args="load stereo_image_sandbox/split_image $(arg manager)"
           clear_params="true">
-      <remap from="~input" to="image_raw" />
+      <remap from="~input" to="throttled/image_raw" />
       <remap from="~output/vertical00/horizontal00" to="left_camera/image_raw" />
       <remap from="~output/vertical00/horizontal01" to="right_camera/image_raw" />
       <rosparam subst_value="true">
@@ -83,36 +95,38 @@
       </node>
     </group>
 
-    <node name="disparity"
-          pkg="nodelet" type="nodelet"
-          args="load stereo_image_proc/disparity $(arg manager)"
-          clear_params="true"
-          respawn="$(arg respawn)">
-      <param name="queue_size" value="$(arg queue_size)" />
-      <remap from="left/image_rect" to="left_camera/image_rect_color" />
-      <remap from="left/camera_info" to="left_camera/camera_info" />
-      <remap from="right/image_rect" to="right_camera/image_rect_color" />
-      <remap from="right/camera_info" to="right_camera/camera_info" />
-      <rosparam subst_value="true" >
-        disparity_range: 64
-        queue_size: $(arg queue_size)
-      </rosparam>
-    </node>
+    <group if="$(arg stereo_proc)" >
+      <node name="disparity"
+            pkg="nodelet" type="nodelet"
+            args="load stereo_image_proc/disparity $(arg manager)"
+            clear_params="true"
+            respawn="$(arg respawn)">
+        <param name="queue_size" value="$(arg queue_size)" />
+        <remap from="left/image_rect" to="left_camera/image_rect_color" />
+        <remap from="left/camera_info" to="left_camera/camera_info" />
+        <remap from="right/image_rect" to="right_camera/image_rect_color" />
+        <remap from="right/camera_info" to="right_camera/camera_info" />
+        <rosparam subst_value="true" >
+          disparity_range: 64
+          queue_size: $(arg queue_size)
+        </rosparam>
+      </node>
 
-    <node name="point_cloud"
-          pkg="nodelet" type="nodelet"
-          args="load stereo_image_proc/point_cloud2 $(arg manager)"
-          clear_params="true"
-          respawn="$(arg respawn)">
-      <param name="queue_size" value="$(arg queue_size)" />
-      <remap from="left/image_rect_color" to="left_camera/image_rect_color" />
-      <remap from="left/camera_info" to="left_camera/camera_info" />
-      <remap from="right/camera_info" to="right_camera/camera_info" />
-      <remap from="points2" to="points" />
-      <rosparam subst_value="true" >
-        queue_size: $(arg queue_size)
-      </rosparam>
-    </node>
+      <node name="point_cloud"
+            pkg="nodelet" type="nodelet"
+            args="load stereo_image_proc/point_cloud2 $(arg manager)"
+            clear_params="true"
+            respawn="$(arg respawn)">
+        <param name="queue_size" value="$(arg queue_size)" />
+        <remap from="left/image_rect_color" to="left_camera/image_rect_color" />
+        <remap from="left/camera_info" to="left_camera/camera_info" />
+        <remap from="right/camera_info" to="right_camera/camera_info" />
+        <remap from="points2" to="points" />
+        <rosparam subst_value="true" >
+          queue_size: $(arg queue_size)
+        </rosparam>
+      </node>
+    </group>
 
   </group>
 
