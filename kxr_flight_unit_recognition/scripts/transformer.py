@@ -3,11 +3,10 @@
 import rospy
 import tf
 from geometry_msgs.msg import PoseStamped
-from apriltag_ros.msg import AprilTagDetectionArray
 
 class mocapTransformer:
     def __init__(self):
-        self.mocap_pose_sub = rospy.Subscriber("birotor/mocap/pose", PoseStamped, self.mocapCallback)
+        self.mocap_pose_sub = rospy.Subscriber("mocap/pose", PoseStamped, self.mocapCallback)
 
         self.br = tf.TransformBroadcaster()
 
