@@ -61,7 +61,7 @@ class Approach(State):
         self.approach_count = 0
 
         ############# parameter ################
-        self.approach_target_xy = np.array((1.0, 0.0))
+        self.approach_target_xy = np.array((0.95, 0.0))
         self.approach_step_distance = 0.2
         self.approach_target_thresh = 0.1
         self.approach_count_max = 3
