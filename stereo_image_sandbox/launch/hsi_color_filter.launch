@@ -14,11 +14,11 @@
   <arg name="FILTER_NAME_SUFFIX" default=""/>
   <arg name="OUTPUT" default="hsi_output$(arg FILTER_NAME_SUFFIX)"/>
 
-  <arg name="h_max" default="40" />
-  <arg name="h_min" default="-30" />
+  <arg name="h_max" default="50" />
+  <arg name="h_min" default="-35" />
   <arg name="s_max" default="255" />
-  <arg name="s_min" default="34" />
-  <arg name="i_max" default="200" />
+  <arg name="s_min" default="65" />
+  <arg name="i_max" default="100" />
   <arg name="i_min" default="30" />
 
   <arg name="create_manager" default="true" />
