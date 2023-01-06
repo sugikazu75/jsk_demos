@@ -1,0 +1,5 @@
+<launch>
+  <include file="$(find stereo_image_sandbox)/launch/hsi_color_filter.launch"/>
+  <include file="$(find kxr_flight_unit_recognition)/launch/transformer.launch"/>
+  <node pkg="kxr_flight_unit_recognition" name="bounding_box_publisher" type="color_extraction.py"/>
+</launch>
