@@ -32,5 +32,3 @@ if __name__ == '__main__':
     outcome = sm_top.execute()
     rospy.spin()
     sis.stop()
-
-

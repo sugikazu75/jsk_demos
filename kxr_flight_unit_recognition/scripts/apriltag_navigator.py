@@ -12,27 +12,29 @@ from std_msgs.msg import Float32
 class ApriltagNavigator:
     def __init__(self):
         self.listener = tf.TransformListener()
+        self.broadcaster = tf.TransformBroadcaster()
 
         # self.pos_setpoint_msg = Wrench()
-        # self.pos_setpoint_pub = rospy.Publisher('birotor/pos_setpoint', Wrench, queue_size=1)
+        # self.pos_setpoint_pub = rospy.Publisher('pos_setpoint', Wrench, queue_size=1)
         self.x_setpoint_msg = Float32()
         self.y_setpoint_msg = Float32()
         self.z_setpoint_msg = Float32()
-        self.x_setpoint_pub = rospy.Publisher('birotor/go_pos/x', Float32, queue_size=1)
-        self.y_setpoint_pub = rospy.Publisher('birotor/go_pos/y', Float32, queue_size=1)
-        self.z_setpoint_pub = rospy.Publisher('birotor/go_pos/z', Float32, queue_size=1)
+        self.x_setpoint_pub = rospy.Publisher('go_pos/x', Float32, queue_size=1)
+        self.y_setpoint_pub = rospy.Publisher('go_pos/y', Float32, queue_size=1)
+        self.z_setpoint_pub = rospy.Publisher('go_pos/z', Float32, queue_size=1)
 
         self.do_demo_flag = False
         self.do_demo_flag_sub = rospy.Subscriber('~do_apriltag_demo', Bool, self.doDemoFlagCallback)
 
         self.odom = PoseStamped()
-        self.odom_sub = rospy.Subscriber('birotor/mocap/pose', PoseStamped, self.odomCallback)
+        self.odom_sub = rospy.Subscriber('mocap/pose', PoseStamped, self.odomCallback)
 
         self.world_name = 'world'
         self.tag_list = ['0', '1', '2']
         self.target_tag = self.tag_list[0]
         self.target_tag_sub = rospy.Subscriber('~target_tag', String, self.setTargetTagCallback)
 
+        ################# parameter ######################
         self.offset = Wrench()
         self.offset.force.x = 0.2
         self.offset.force.y = 0.0
@@ -40,8 +42,10 @@ class ApriltagNavigator:
         self.offset.torque.z = 0.0
         self.offset_sub = rospy.Subscriber('~pos_setoffset', Wrench, self.setOffsetCallback)
 
-        self.verbose = True
         self.average_num = 20
+        ###################################################
+
+        self.verbose = False
         self.trans = None
         self.trans_all = np.zeros((self.average_num, 3))
         self.rot = None
@@ -62,6 +66,9 @@ class ApriltagNavigator:
             self.euler = tf.transformations.euler_from_quaternion((self.rot[0], self.rot[1], self.rot[2], self.rot[3]))
             self.count = self.count + 1
             self.index = (self.index + 1) % self.average_num
+
+            self.broadcaster.sendTransform((0.0, 0.0, 0.0), tf.transformations.quaternion_from_euler(0.0, 1.57, 1.57), rospy.Time.now(), 'world_0', self.target_tag)
+            self.broadcaster.sendTransform((-1.0, 0.0, 0.3), (0.0, 0.0, 0.0, 1.0), rospy.Time.now(), 'target', 'world_0')
 
             if self.verbose and self.count >= self.average_num:
                 print('trans={}, euler={}'.format(self.trans, self.euler))
