@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="kxr_flight_unit_recognition" type="joy_lisp_command_converter.py" name="joy_lisp_command_converter" output="screen"/>
+</launch>

@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="kxr_flight_unit_recognition" name="go_pos_interpolation" type="go_pos_interpolation.py" output="screen" />
+  <node pkg="kxr_flight_unit_recognition" name="apriltag_navigator" type="apriltag_navigator.py" output="screen" />
+</launch>

@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="kxr_flight_unit_recognition" type="transformer.py" name="transformer_node" output="screen">
+    <rosparam command="load" file="$(find kxr_flight_unit_recognition)/config/camera_transform.yaml"/>
+  </node>
+</launch>

@@ -1,0 +1,15 @@
+<launch>
+  <node pkg="kxr_flight_unit_recognition" type="neck_transformer.py" name="transformer_node" output="screen">
+    <rosparam command="load" file="$(find kxr_flight_unit_recognition)/config/camera_transform.yaml"/>
+  </node>
+
+  <node pkg="tf" type="static_transform_publisher" name="docking_pipe_broadcaster" args="-0.04269 0 -0.139 0 0 0 flight_unit docking_pipe 100"/>
+
+  <node pkg="tf" type="static_transform_publisher" name="head_neck_y_broadcaster" args="0.1335 0 0.0154 0 0.3141 0 docking_pipe head_neck_y 100"/>
+
+  <node pkg="tf" type="static_transform_publisher" name="left_camera_broadcaster" args="0.0205 0.03 0 -1.57 0.0 -1.57 camera_center left_camera 100"/>
+
+  <node pkg="tf" type="static_transform_publisher" name="right_camera_broadcaster" args="0.0205 -0.03 0 -1.57 0.0 -1.57 camera_center right_camera 100"/>
+
+</launch>
+

@@ -108,7 +108,7 @@ int main (int argc, char** argv)
   ros::NodeHandle nh;
 
   // Create a ROS subscriber for the input point cloud
-  ros::Subscriber sub = nh.subscribe ("/stereo/points", 1, cloud_cb);
+  ros::Subscriber sub = nh.subscribe ("/remote/stereo/points", 1, cloud_cb);
 
   // Create a ROS publisher for the output point cloud
   pub = nh.advertise<pcl::PCLPointCloud2> ("obstacles", 1);

@@ -1,7 +1,7 @@
 <launch>
   <arg name="ns" value="remote" />
   <arg name="camera_name" value="stereo" />
-  <arg name="gui" default="true" />
+  <arg name="gui" default="false" />
   <arg name="frame_id" default="$(arg camera_name)_link" />
 
   <!-- Worker threads for the nodelet manager -->
