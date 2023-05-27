@@ -2,8 +2,9 @@
 
 import rospy
 import tf
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Vector3
 from std_msgs.msg import Float32
+
 
 class mocapTransformer:
     def __init__(self):
@@ -13,6 +14,7 @@ class mocapTransformer:
 
     def mocapCallback(self, msg):
         self.br.sendTransform((msg.pose.position.x, msg.pose.position.y, msg.pose.position.z), (msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w), rospy.Time.now(), 'flight_unit', 'world')
+
 
 class cameraTransformer:
     def __init__(self):
@@ -39,8 +41,45 @@ class cameraTransformer:
         self.head_neck_p_angle = msg.data
 
 
+class objectTransformer:
+    def __init__(self):
+        self.object_mocap_sub = rospy.Subscriber("/object/mocap/pose", PoseStamped, self.objectMocapCallback)
+        self.object_euler = Vector3()
+        self.object_euler_pub = rospy.Publisher("/object/euler", Vector3, queue_size=1)
+        self.cnt = 0
+
+    def objectMocapCallback(self, msg):
+        self.cnt = (self.cnt + 1) % 20
+        if self.cnt == 0:
+            euler = tf.transformations.euler_from_quaternion((msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z, msg.pose.orientation.w))
+            self.object_euler.x = euler[0]
+            self.object_euler.y = euler[1]
+            self.object_euler.z = euler[2]
+            self.object_euler_pub.publish(self.object_euler)
+
+
+class apriltagTransformer:
+    def __init__(self):
+        self.listener = tf.TransformListener()
+        self.timer = rospy.Timer(rospy.Duration(1), self.timerCallback)
+
+        self.tag_frame = '1'
+        self.world_frame = 'world'
+
+    def timerCallback(self, event):
+        try:
+            (trans, rot) = self.listener.lookupTransform(self.world_frame, self.tag_frame, rospy.Time(0))
+            rospy.set_param('apriltag_pos', trans)
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
+            pass
+
+
 if __name__ == "__main__":
     rospy.init_node("transformer_node")
+
     mocap_transformer = mocapTransformer()
     camera_transformer = cameraTransformer()
+    object_transformer = objectTransformer()
+    apriltag_transformer = apriltagTransformer()
+
     rospy.spin()
