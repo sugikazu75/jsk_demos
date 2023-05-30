@@ -1,10 +1,42 @@
 import rospy
-from geometry_msgs.msg import PoseStamped
-from kxr_rosserial_msgs.msg import PIDControllerState6D, FlightState
-from sensor_msgs.msg import Joy
-from std_msgs.msg import Float32, Bool, Int16
+import smach
 import tf
 import numpy as np
+import time
+
+from geometry_msgs.msg import PoseStamped, Vector3
+from kxr_rosserial_msgs.msg import PIDControllerState6D, FlightState
+from sensor_msgs.msg import Joy
+from std_msgs.msg import Float32, Bool, Int16, Empty
+
+class BaseState(smach.State):
+    def __init__(self, robot, outcomes=[], input_keys=[], output_keys=[], io_keys=[]):
+        smach.State.__init__(self, outcomes, input_keys, output_keys, io_keys)
+        self.robot = robot
+
+class Start(BaseState):
+    def __init__(self, robot):
+        BaseState.__init__(self, robot, outcomes=['succeeded', 'preempted'])
+        self.task_start = False
+        self.task_start_sub = rospy.Subscriber("/task_start", Empty, self.taskStartCallback)
+
+    def taskStartCallback(self, msg):
+        self.task_start = True
+
+    def execute(self, userdata):
+        self.task_start = False
+        self.robot.resetForceSkip()
+        rospy.loginfo("wait to start task")
+        while not (self.task_start or self.robot.getForceSkip()):
+            rospy.sleep(0.1)
+
+            if rospy.is_shutdown():
+                return 'preempted'
+
+        rospy.loginfo_once('task start!')
+        time.sleep(1.0)
+        self.robot.resetForceSkip();
+        return 'succeeded'
 
 class kxrInterface(object):
     def __init__(self):
@@ -22,22 +54,23 @@ class kxrInterface(object):
         self.flight_state_sub = rospy.Subscriber('flight_state', FlightState, self.flightStateCallback)
         self.joy_sub = rospy.Subscriber('joy', Joy, self.joyCallback)
 
-        self.go_pos_x_msg = Float32()
         self.go_pos_x_pub = rospy.Publisher('go_pos/x', Float32, queue_size=1)
-        self.go_pos_y_msg = Float32()
         self.go_pos_y_pub = rospy.Publisher('go_pos/y', Float32, queue_size=1)
-        self.go_pos_z_msg = Float32()
         self.go_pos_z_pub = rospy.Publisher('go_pos/z', Float32, queue_size=1)
-        self.go_pos_yaw_msg = Float32()
+        self.go_pos_roll_pub = rospy.Publisher('go_pos/roll', Float32, queue_size=1)
+        self.go_pos_pitch_pub = rospy.Publisher('go_pos/pitch', Float32, queue_size=1)
         self.go_pos_yaw_pub = rospy.Publisher('go_pos/yaw', Float32, queue_size=1)
 
-        self.z_i_control_msg = Bool()
         self.z_i_control_pub = rospy.Publisher('pid/i_control/z', Bool, queue_size=1)
+        self.z_offset_pub = rospy.Publisher('pid/setoffset/z',  Float32, queue_size=1)
 
-        self.arm_feedback_msg = Bool()
-        self.arm_feedback_pub = rospy.Publisher("arm_feedback", Bool, queue_size=1)
-        self.call_motion_msg = Int16()
+        self.pitch_gain_pub = rospy.Publisher('pid/setgain/pitch', Vector3, queue_size=1)
+
+        self.set_control_mode_pub = rospy.Publisher('set_control_mode', Bool, queue_size=1)
+
+        self.set_motion_flag_pub = rospy.Publisher("motion_flag", Bool, queue_size=1)
         self.call_motion_pub = rospy.Publisher("call_motion", Int16, queue_size=1)
+        self.docking_pub = rospy.Publisher("docking_mode", Bool, queue_size=1)
 
         self.force_skip_flag = False
 
@@ -52,7 +85,15 @@ class kxrInterface(object):
         self.pid = msg
 
     def flightStateCallback(self, msg):
-        self.flight_state = msg
+        '''
+        NONE = 0
+        ARM_OFF = 1
+        ARM_ON = 2
+        TAKEOFF = 3
+        HOVERING = 4
+        LANDING = 5
+        '''
+        self.flight_state = msg.state
 
     def joyCallback(self, msg):
         self.joy = msg
@@ -88,32 +129,72 @@ class kxrInterface(object):
         return self.force_skip_flag
 
     def resetForceSkip(self):
-        self.foece_skip_flag = False
+        self.force_skip_flag = False
 
     def goPosX(self, target):
-        self.go_pos_x_msg.data = target
-        self.go_pos_x_pub.publish(self.go_pos_x_msg)
+        msg = Float32()
+        msg.data = target
+        self.go_pos_x_pub.publish(msg)
 
     def goPosY(self, target):
-        self.go_pos_y_msg.data = target
-        self.go_pos_y_pub.publish(self.go_pos_y_msg)
+        msg = Float32()
+        msg.data = target
+        self.go_pos_y_pub.publish(msg)
 
     def goPosZ(self, target):
-        self.go_pos_z_msg.data = target
-        self.go_pos_z_pub.publish(self.go_pos_z_msg)
+        msg = Float32()
+        msg.data = target
+        self.go_pos_z_pub.publish(msg)
+
+    def goPosRoll(self, target):
+        msg = Float32()
+        msg.data = target
+        self.go_pos_roll_pub.publish(msg)
+
+    def goPosPitch(self, target):
+        msg = Float32()
+        msg.data = target
+        self.go_pos_pitch_pub.publish(msg)
 
     def goPosYaw(self, target):
-        self.go_pos_yaw_msg.data = target
-        self.go_pos_yaw_pub.publish(self.go_pos_yaw_msg)
+        msg = Float32()
+        msg.data = target
+        self.go_pos_yaw_pub.publish(msg)
 
     def setZIControl(self, flag):
-        self.z_i_control_msg.data = flag
-        self.z_i_control_pub.publish(self.z_i_control_msg)
+        msg = Bool()
+        msg.data = flag
+        self.z_i_control_pub.publish(msg)
 
-    def serArmFeedbackMode(self, flag):
-        self.arm_feedback_msg.data = flag
-        self.arm_feedback_pub.publish(self.arm_feedback_msg)
+    def setZOffset(self, offset):
+        msg = Float32()
+        msg.data = offset
+        self.z_offset_pub.publish(msg)
+
+    def setPitchGain(self, p, i, d):
+        msg = Vector3()
+        msg.x = p
+        msg.y = i
+        msg.z = d
+        self.pitch_gain_pub.publish(msg)
+
+    def setControlMode(self, flag):
+        msg = Bool()
+        msg.data = flag
+        self.set_control_mode_pub.publish(msg)
+
+    def setMotionFlag(self, flag):
+        msg= Bool()
+        msg.data = flag
+        self.set_motion_flag_pub.publish(msg)
 
     def callMotion(self, num):
-        self.call_motion_msg.data = num
-        self.call_motion_pub.publish(self.call_motion_msg)
+        msg = Int16()
+        msg.data = num
+        self.call_motion_pub.publish(msg)
+
+    def setDockingMode(self, flag):
+        msg = Bool()
+        msg.data = flag
+        self.docking_pub.publish(msg)
+

@@ -1,42 +1,166 @@
 #!/usr/bin/env python
 
-import sys
 import time
 import rospy
-from std_msgs.msg import Float32
-from std_msgs.msg import Bool
-from geometry_msgs.msg import Vector3
+import smach
+import smach_ros
+import numpy as np
+from kxr_interface import kxrInterface, BaseState, Start
 
-rospy.init_node("state_transition_node")
+class FoottoWheel(BaseState):
+    def __init__(self, robot):
+        BaseState.__init__(self, robot, outcomes=['succeeded', 'preempted'], io_keys=['foot_to_wheel_target_pitch', 'foot_to_wheel_default_pitch_gain', 'foot_to_wheel_transition_pitch_gain', 'foot_to_wheel_target_z_output', 'foot_to_wheel_target_control_mode'])
+        self.target_pitch = None
+        self.default_pitch_gain = None
+        self.transition_pitch_gain = None
+        self.target_z_output = None
+        self.target_control_mode = None
 
-z_offset_pub = rospy.Publisher("/pid/setoffset/z", Float32, queue_size=1)
-z_i_control_pub = rospy.Publisher("/pid/i_control/z", Bool, queue_size=1)
-pitch_gain_pub = rospy.Publisher("/pid/setgain/pitch", Vector3, queue_size=1)
+        self.done = False
 
-target_state = rospy.get_param("~state", 0)
+    def execute(self, userdata):
+        self.target_pitch = userdata.foot_to_wheel_target_pitch
+        self.default_pitch_gain = userdata.foot_to_wheel_default_pitch_gain
+        self.transition_pitch_gain = userdata.foot_to_wheel_transition_pitch_gain
+        self.target_z_output = userdata.foot_to_wheel_target_z_output
+        self.target_control_mode = userdata.foot_to_wheel_target_control_mode
 
-z_offset_msg = Float32()
-z_i_control_msg = Bool()
-pitch_gain_msg = Vector3()
+        self.done = False
 
-if target_state == 0:     # lock state
-    print("lock state")
-    z_offset_msg.data = 6.0
-    z_i_control_msg.data = False
-    pitch_gain_msg.x = 20.0
-    pitch_gain_msg.y = 1.0
-    pitch_gain_msg.z = 4.0
+        self.robot.setZOffset(self.robot.getPID().z.offset - self.robot.getPID().z.output + self.target_z_output)
+        self.robot.goPosPitch(self.target_pitch)
+        time.sleep(3.0)
+        self.robot.setDockingMode(False)
+        time.sleep(0.5)
+        self.robot.setPitchGain(self.transition_pitch_gain[0], self.transition_pitch_gain[1], self.transition_pitch_gain[2])
+        time.sleep(0.5)
 
-elif target_state == 1:   # unlock state
-    print("unlock state")
-    z_offset_msg.data = 2.5
-    z_i_control_msg.data = False
-    pitch_gain_msg.x = 40.0
-    pitch_gain_msg.y = 1.0
-    pitch_gain_msg.z = 4.0
+        rospy.loginfo("wait for pitch convergion")
+        while not (self.robot.getForceSkip() or self.done):
+            time.sleep(0.02)
+            if abs(self.robot.getPID().pitch.pos_error) < 0.03:
+                self.done = True
 
-time.sleep(0.6)
+            if rospy.is_shutdown():
+                return 'preempted'
 
-z_offset_pub.publish(z_offset_msg)
-z_i_control_pub.publish(z_i_control_msg)
-pitch_gain_pub.publish(pitch_gain_msg)
+        self.robot.setDockingMode(True)
+        time.sleep(1.0)
+        self.robot.setPitchGain(self.default_pitch_gain[0], self.default_pitch_gain[1], self.default_pitch_gain[2])
+
+        self.robot.setControlMode(True)
+        self.robot.callMotion(5)
+        self.robot.goPosPitch(0.0)
+
+        time.sleep(1.0)
+        self.robot.resetForceSkip()
+        return 'succeeded'
+
+
+
+class WheeltoFoot(BaseState):
+    def __init__(self, robot):
+        BaseState.__init__(self, robot, outcomes=['succeeded', 'preempted'], io_keys=['wheel_to_foot_target_pitch', 'wheel_to_foot_default_pitch_gain', 'wheel_to_foot_transition_pitch_gain', 'wheel_to_foot_target_z_output', 'wheel_to_foot_target_control_mode'])
+        self.target_pitch = None
+        self.default_pitch_gain = None
+        self.transition_pitch_gain = None
+        self.target_z_output = None
+        self.target_control_mode = None
+
+        self.done = False
+
+    def execute(self, userdata):
+        self.target_pitch = userdata.wheel_to_foot_target_pitch
+        self.default_pitch_gain = userdata.wheel_to_foot_default_pitch_gain
+        self.transition_pitch_gain = userdata.wheel_to_foot_transition_pitch_gain
+        self.target_z_output = userdata.wheel_to_foot_target_z_output
+        self.target_control_mode = userdata.wheel_to_foot_target_control_mode
+
+        self.done = False
+
+        self.robot.callMotion(8)
+        self.robot.setZOffset(self.robot.getPID().z.offset - self.robot.getPID().z.output + self.target_z_output)
+        rospy.loginfo('set z offset')
+        self.robot.setControlMode(False)
+        rospy.loginfo('set control mode false')
+        self.robot.goPosPitch(self.target_pitch)
+        rospy.loginfo('set target pitch')
+        self.robot.goPosX(self.robot.getPose().pose.position.x - 0.1)
+        rospy.loginfo('set target x')
+        self.robot.setPitchGain(self.transition_pitch_gain[0], self.transition_pitch_gain[1], self.transition_pitch_gain[2])
+        time.sleep(10.0)
+
+        rospy.loginfo('wait for foot is contacting')
+        while (abs(self.robot.getPID().pitch.pos_error) > 0.05 or not self.robot.getForceSkip()):
+            pass
+
+        time.sleep(3.0)
+        self.robot.goPosPitch(0.0)
+        self.robot.goPosX(self.robot.getPose().pose.position.x)
+        self.robot.setZOffset(self.robot.getPID().z.offset - self.robot.getPID().z.output + 4.0)
+        self.robot.setDockingMode(False)
+        time.sleep(0.5)
+
+        self.robot.resetForceSkip()
+        rospy.loginfo("wait for pitch convergion")
+        while not (self.robot.getForceSkip() or self.done):
+            time.sleep(0.02)
+            if abs(self.robot.getPID().pitch.pos_error) < 0.03:
+                self.done = True
+
+            if rospy.is_shutdown():
+                return 'preempted'
+
+        self.robot.setDockingMode(True)
+        time.sleep(1.0)
+        self.robot.setPitchGain(self.default_pitch_gain[0], self.default_pitch_gain[1], self.default_pitch_gain[2])
+
+        time.sleep(1.0)
+        self.robot.resetForceSkip()
+        return 'succeeded'
+
+
+if __name__ == '__main__':
+    rospy.init_node('task')
+
+    robot = kxrInterface()
+
+    sm_top = smach.StateMachine(outcomes=['Succeeded', 'Preempted'])
+
+    sm_top.userdata.foot_to_wheel_target_pitch = -0.2
+    sm_top.userdata.foot_to_wheel_default_pitch_gain = np.array((20, 1, 4))
+    sm_top.userdata.foot_to_wheel_transition_pitch_gain = np.array((40, 1, 4))
+    sm_top.userdata.foot_to_wheel_target_z_output = 4.0
+    sm_top.userdata.foot_to_wheel_target_control_mode = False
+
+
+    sm_top.userdata.wheel_to_foot_target_pitch = -0.3
+    sm_top.userdata.wheel_to_foot_default_pitch_gain = np.array((20, 1, 4))
+    sm_top.userdata.wheel_to_foot_transition_pitch_gain = np.array((40, 1, 4))
+    sm_top.userdata.wheel_to_foot_target_z_output = 7.0
+    sm_top.userdata.wheel_to_foot_target_control_mode = False
+
+    with sm_top:
+        smach.StateMachine.add('Start', Start(robot),
+                               transitions={'succeeded':'FoottoWheel',
+                                            'preempted':'Preempted'})
+
+        smach.StateMachine.add('FoottoWheel', FoottoWheel(robot),
+                               transitions={'succeeded':'Wait',
+                                            'preempted':'Preempted'})
+
+        smach.StateMachine.add('Wait', Start(robot),
+                               transitions={'succeeded':'WheeltoFoot',
+                                            'preempted':'Preempted'})
+
+        smach.StateMachine.add('WheeltoFoot', WheeltoFoot(robot),
+                               transitions={'succeeded':'Succeeded',
+                                            'preempted':'Preempted'})
+
+        sis = smach_ros.IntrospectionServer('smach_server', sm_top, '/SM_ROOT')
+        sis.start()
+
+    outcome = sm_top.execute()
+
+    rospy.spin()
+    sis.stop()
