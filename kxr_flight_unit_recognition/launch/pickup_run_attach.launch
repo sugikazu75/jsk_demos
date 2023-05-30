@@ -1,0 +1,7 @@
+<launch>
+
+  <include file="$(find kxr_flight_unit_recognition)/launch/object_mocap.launch" />
+
+  <include file="$(find kxr_flight_unit_recognition)/launch/transformer.launch" />
+
+</launch>
