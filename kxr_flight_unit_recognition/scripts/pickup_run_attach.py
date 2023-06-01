@@ -112,9 +112,14 @@ class ZIControl(BaseState):
     def execute(self, userdata):
         while not (self.robot.getPID().z.i_control_flag or self.robot.getForceSkip()):
             self.robot.setZIControl(True)
+            time.sleep(1.0)
 
         if rospy.is_shutdown():
             return 'preempted'
+
+        target_z = 1.3
+        self.robot.setZOffset((self.robot.getPID().z.setpoint - target_z) * self.robot.getPID().z.gain[0] + self.robot.getPID().z.offset)
+        self.robot.goPosZ(target_z)
 
         if self.robot.getPID().z.i_control_flag:
             rospy.loginfo_once('z i control is started')
@@ -140,10 +145,14 @@ class AerialManipulationApproach(BaseState):
         self.apriltag_pos = None
         self.approach_done = False
 
-        while not (self.robot.getForceSkip() or self.approach_done):
-            time.sleep(1.0)
-            self.robot.callMotion(6) # arm feedback control
+        self.robot.callMotion(9) # gripper-pick pose
+        time.sleep(3.0)
 
+        self.robot.callMotion(6) # arm feedback control
+        time.sleep(2.0)
+
+        while not (self.robot.getForceSkip() or self.approach_done):
+            time.sleep(0.2)
             if not rospy.has_param('apriltag_pos'):
                 rospy.loginfo_once('not exist apriltag_pos in rosparam')
                 pass
@@ -151,14 +160,19 @@ class AerialManipulationApproach(BaseState):
             else:
                 rospy.loginfo_once('found apriltag')
                 apriltag_pos = rospy.get_param('apriltag_pos')
+                apriltag_pos = apriltag_pos + np.array((-0.2, 0, -0.3))
                 target_pos = np.array((apriltag_pos[0], apriltag_pos[1], apriltag_pos[2])) + self.approach_offset
-                cur_pos = self.robot.getPosition()
+                cur_pos = np.array((self.robot.getPosition()[0], self.robot.getPosition()[1], self.robot.getPosition()[2]))
                 diff = target_pos - cur_pos
-                rospy.loginfo('apriltag_pos=[{}, {}, {}]\tcurrent_pos=[{}, {}, {}]\tdiff=[{}, {}, {}]'.format(apriltag_pos[0], apriltag_pos[1], apriltag_pos[2], cur_pos[0], cur_pos[1], cur_pos[2], diff[0], diff[1], diff[2]))
+
+                rospy.loginfo('apriltag_pos=[{}, {}, {}]'.format(apriltag_pos[0], apriltag_pos[1], apriltag_pos[2]))
+                rospy.loginfo('target_pos = [{}, {}, {}]'.format(target_pos[0], target_pos[1], target_pos[2]))
+                rospy.loginfo('current_pos =[{}, {}, {}]'.format(cur_pos[0], cur_pos[1], cur_pos[2]))
+                rospy.loginfo('diff=[{}, {}, {}]'.format(diff[0], diff[1], diff[2]))
 
                 self.robot.goPosX(min(cur_pos[0] + self.approach_step[0], apriltag_pos[0] + self.approach_step[0]))
-                self.robot.goPosY(target_pos[1])
-                self.robot.goPosZ(target_pos[2])
+                self.robot.goPosY(clamp(target_pos[1], -0.3, 0.3))
+                self.robot.goPosZ(clamp(target_pos[2], 0, 1.6))
 
                 if np.linalg.norm(cur_pos[0:2] - target_pos[0:2]) < self.approach_thresh:
                     rospy.loginfo('approached')
@@ -250,17 +264,17 @@ if __name__ == '__main__':
     sm_top.userdata.target_yaw = 0.0
     sm_top.userdata.yaw_converged_thresh = 0.1
     sm_top.userdata.yaw_step = 0.5
-    sm_top.userdata.ground_target_x = 0.5
+    sm_top.userdata.ground_target_x = 0.2
     sm_top.userdata.ground_step_x = 0.3
     sm_top.userdata.ground_converged_thresh = 0.1
 
-    sm_top.userdata.foot_to_wheel_target_pitch = -0.3
+    sm_top.userdata.foot_to_wheel_target_pitch = 0.0
     sm_top.userdata.foot_to_wheel_default_pitch_gain = np.array((20, 1, 4))
     sm_top.userdata.foot_to_wheel_transition_pitch_gain = np.array((40, 1, 4))
     sm_top.userdata.foot_to_wheel_target_z_output = 4.0
     sm_top.userdata.foot_to_wheel_target_control_mode = False
 
-    sm_top.userdata.wheel_to_foot_target_pitch = -0.3
+    sm_top.userdata.wheel_to_foot_target_pitch = 0.0
     sm_top.userdata.wheel_to_foot_default_pitch_gain = np.array((20, 1, 4))
     sm_top.userdata.wheel_to_foot_transition_pitch_gain = np.array((40, 1, 4))
     sm_top.userdata.wheel_to_foot_target_z_output = 7.0
@@ -271,45 +285,42 @@ if __name__ == '__main__':
 
     with sm_top:
         smach.StateMachine.add('Start', Start(robot),
-                               transitions={'succeeded':'AerialManipulation',
+                               transitions={'succeeded':'FoottoWheel',
                                             'preempted':'Preempted'})
 
-        # smach.StateMachine.add('Start', Start(robot),
-        #                        transitions={'succeeded':'FoottoWheel',
-        #                                     'preempted':'Preempted'})
+        smach.StateMachine.add('FoottoWheel', FoottoWheel(robot),
+                               transitions={'succeeded':'RotateYawWait',
+                                            'preempted':'Preempted'})
 
-        # smach.StateMachine.add('FoottoWheel', FoottoWheel(robot),
-        #                        transitions={'succeeded':'RotateYawWait',
-        #                                     'preempted':'Preempted'})
+        smach.StateMachine.add('RotateYawWait', Start(robot),
+                               transitions={'succeeded':'RotateYaw',
+                                            'preempted':'Preempted'})
 
-        # smach.StateMachine.add('RotateYawWait', Start(robot),
-        #                        transitions={'succeeded':'RotateYaw',
-        #                                     'preempted':'Preempted'})
+        smach.StateMachine.add('RotateYaw', RotateYaw(robot),
+                               transitions={'succeeded':'GroundApproach',
+                                            'preempted':'Preempted'})
 
-        # smach.StateMachine.add('RotateYaw', RotateYaw(robot),
-        #                        transitions={'succeeded':'GroundApproach',
-        #                                     'preempted':'Preempted'})
+        smach.StateMachine.add('GroundApproach', GroundApproach(robot),
+                               transitions={'succeeded':"WheeltoFoot",
+                                            'preempted':'Preempted'})
 
-        # smach.StateMachine.add('GroundApproach', GroundApproach(robot),
-        #                        transitions={'succeeded':"WheeltoFoot",
-        #                                     'preempted':'Preempted'})
+        smach.StateMachine.add('WheeltoFoot', WheeltoFoot(robot),
+                               transitions={'succeeded':'TakeoffWait',
+                                            'preempted':'Preempted'})
 
-        # smach.StateMachine.add('WheeltoFoot', WheeltoFoot(robot),
-        #                        transitions={'succeeded':'TakeoffWait',
-        #                                     'preempted':'Preempted'})
 
-        # smach.StateMachine.add('TakeoffWait', Start(robot),
-        #                        transitions={'succeeded':'ZIControl',
-        #                                     'preempted':'Preempted'})
+        smach.StateMachine.add('TakeoffWait', Start(robot),
+                               transitions={'succeeded':'ZIControl',
+                                            'preempted':'Preempted'})
 
-        # smach.StateMachine.add('ZIControl', ZIControl(robot),
-        #                        transitions={'succeeded':"AerialManipulation",
-        #                                     'preempted':'Preempted'})
+        smach.StateMachine.add('ZIControl', ZIControl(robot),
+                               transitions={'succeeded':"AerialManipulation",
+                                            'preempted':'Preempted'})
 
         sm_sub = smach.StateMachine(outcomes=['AerialManipulationSucceeded', 'AerialManipulationPreempted'])
 
-        sm_sub.userdata.aerial_manipulation_approach_step = np.array((0.2, 0.1, 0.1))
-        sm_sub.userdata.aerial_manipulation_approach_offset = np.array((-0.2, -0.15, 0.2))
+        sm_sub.userdata.aerial_manipulation_approach_step = np.array((0.1, 0.1, 0.1))
+        sm_sub.userdata.aerial_manipulation_approach_offset = np.array((-0.1, -0.25, 0.2))
         sm_sub.userdata.aerial_manipulation_approach_thresh = 0.1
         sm_sub.userdata.aerial_manipulation_detect_contact_thresh = 0.05
         sm_sub.userdata.aerial_manipulation_detect_contact_count = 3

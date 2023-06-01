@@ -35,7 +35,7 @@ class FoottoWheel(BaseState):
         self.robot.setPitchGain(self.transition_pitch_gain[0], self.transition_pitch_gain[1], self.transition_pitch_gain[2])
         time.sleep(0.5)
 
-        rospy.loginfo("wait for pitch convergion")
+        rospy.loginfo("wait for pitch convergion. target={}".format(self.target_pitch))
         while not (self.robot.getForceSkip() or self.done):
             time.sleep(0.02)
             if abs(self.robot.getPID().pitch.pos_error) < 0.03:
@@ -44,11 +44,22 @@ class FoottoWheel(BaseState):
             if rospy.is_shutdown():
                 return 'preempted'
 
+        rospy.loginfo('set docking mode true')
         self.robot.setDockingMode(True)
         time.sleep(1.0)
         self.robot.setPitchGain(self.default_pitch_gain[0], self.default_pitch_gain[1], self.default_pitch_gain[2])
 
-        self.robot.setControlMode(True)
+        ## mode
+        # self.robot.setControlMode(True)
+        rospy.loginfo('raise throttle')
+        self.robot.setZIControl(True)
+        time.sleep(7.0)
+        target_z = 0.5
+        self.robot.setZOffset((self.robot.getPID().z.setpoint - target_z) * self.robot.getPID().z.gain[0] + self.robot.getPID().z.offset)
+        self.robot.goPosZ(target_z)
+        ## mode
+
+        rospy.loginfo('transform to wheel mode')
         self.robot.callMotion(5)
         self.robot.goPosPitch(0.0)
 
@@ -78,6 +89,7 @@ class WheeltoFoot(BaseState):
 
         self.done = False
 
+        rospy.loginfo('transform to foot mode')
         self.robot.callMotion(8)
         self.robot.setZOffset(self.robot.getPID().z.offset - self.robot.getPID().z.output + self.target_z_output)
         rospy.loginfo('set z offset')
@@ -90,19 +102,22 @@ class WheeltoFoot(BaseState):
         self.robot.setPitchGain(self.transition_pitch_gain[0], self.transition_pitch_gain[1], self.transition_pitch_gain[2])
         time.sleep(10.0)
 
-        rospy.loginfo('wait for foot is contacting')
-        while (abs(self.robot.getPID().pitch.pos_error) > 0.05 or not self.robot.getForceSkip()):
+        rospy.loginfo('wait for foot is contacting. targte pitch={}'.format(self.target_pitch))
+        while not (abs(self.robot.getPID().pitch.pos_error) < 0.05 or self.robot.getForceSkip()):
             pass
+        self.robot.resetForceSkip()
 
         time.sleep(3.0)
         self.robot.goPosPitch(0.0)
         self.robot.goPosX(self.robot.getPose().pose.position.x)
+        rospy.loginfo("decrease throttle")
         self.robot.setZOffset(self.robot.getPID().z.offset - self.robot.getPID().z.output + 4.0)
+        time.sleep(3.0)
         self.robot.setDockingMode(False)
         time.sleep(0.5)
 
         self.robot.resetForceSkip()
-        rospy.loginfo("wait for pitch convergion")
+        rospy.loginfo("wait for pitch convergion. target pitch={}".format(0.0))
         while not (self.robot.getForceSkip() or self.done):
             time.sleep(0.02)
             if abs(self.robot.getPID().pitch.pos_error) < 0.03:
@@ -127,14 +142,14 @@ if __name__ == '__main__':
 
     sm_top = smach.StateMachine(outcomes=['Succeeded', 'Preempted'])
 
-    sm_top.userdata.foot_to_wheel_target_pitch = -0.2
+    sm_top.userdata.foot_to_wheel_target_pitch = 0.0
     sm_top.userdata.foot_to_wheel_default_pitch_gain = np.array((20, 1, 4))
     sm_top.userdata.foot_to_wheel_transition_pitch_gain = np.array((40, 1, 4))
     sm_top.userdata.foot_to_wheel_target_z_output = 4.0
     sm_top.userdata.foot_to_wheel_target_control_mode = False
 
 
-    sm_top.userdata.wheel_to_foot_target_pitch = -0.3
+    sm_top.userdata.wheel_to_foot_target_pitch = 0.0
     sm_top.userdata.wheel_to_foot_default_pitch_gain = np.array((20, 1, 4))
     sm_top.userdata.wheel_to_foot_transition_pitch_gain = np.array((40, 1, 4))
     sm_top.userdata.wheel_to_foot_target_z_output = 7.0
